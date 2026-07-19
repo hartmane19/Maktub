@@ -1,51 +1,100 @@
 import React, { useState, useEffect, useRef } from "react";
 
 /* ============================================================
-   SHARED DATA — swap these for real content/backend calls later
+   DAILY CONTENT — each pool rotates automatically by calendar date.
+   Add more entries any time; the picker below spreads across
+   whatever is here and starts repeating once it runs out.
    ============================================================ */
-const TODAY_DATA = {
-  catalogNo: "073",
-  image: {
+function dayOfYear(d) {
+  const start = new Date(d.getFullYear(), 0, 0);
+  return Math.floor((d - start) / 86400000);
+}
+function pickForToday(pool) {
+  return pool[dayOfYear(new Date()) % pool.length];
+}
+
+const IMAGES = [
+  {
     title: "The Great Wave off Kanagawa",
     origin: "Japan, c. 1831 — woodblock print",
-    plate: "Plate I",
     history:
       "Katsushika Hokusai carved this image in his seventies, part of a series called Thirty-six Views of Mount Fuji. The wave's claws of foam were achieved using a rare pigment called Prussian blue, newly imported from Europe.",
     commonsFile: "The Great Wave off Kanagawa.jpg",
   },
-  word: {
-    term: "petrichor",
-    pronunciation: "/ˈpɛ.trɪ.kɔːr/",
-    partOfSpeech: "n.",
-    definition: "the pleasant, earthy smell that follows rain after a dry spell, caused by oils released from soil and plants.",
+  {
+    title: "Poseidon of Cape Artemision",
+    origin: "Greece, c. 460 BCE — bronze, National Archaeological Museum of Athens",
+    history:
+      "Recovered from a shipwreck off Cape Artemision in 1926, this bronze figure once held either a trident or a thunderbolt in its missing hand — historians still debate whether it depicts Poseidon or Zeus.",
+    commonsFile: "Poseidon Of Cape Artemision.jpg",
   },
-  quote: { text: "Nothing in life is to be feared, it is only to be understood.", author: "Marie Curie" },
-  yoga: {
-    sanskrit: "Vrksasana",
-    english: "Tree Pose",
-    benefit: "Improves balance and focus while grounding the mind before the day begins.",
+  {
+    title: "Apollo del Belvedere",
+    origin: "Vatican, Roman copy of a Greek bronze — marble",
+    history:
+      "Long considered a touchstone of ideal male beauty in Western art, this marble Apollo depicts the god of music, prophecy, and the sun in the moment just after loosing an arrow.",
+    commonsFile: "Apollo del Belvedere in Vatican.jpg",
   },
-  exercise: {
-    name: "Bodyweight Squats",
-    dosage: "3 sets × 15 reps",
-    benefit: "Builds lower-body strength and mobility — no equipment needed.",
+  {
+    title: "Hera Farnese",
+    origin: "Naples, Roman copy of a 5th-century BCE Greek original — marble",
+    history:
+      "Early archaeologists named this severe, unsmiling marble figure Hera based on her composed expression and regal bearing, though her exact identity was assigned well after she was unearthed.",
+    commonsFile: "Hera Farnese MAN Napoli Inv6027.jpg",
   },
-  song: {
-    title: "Here Comes the Sun",
-    artist: "The Beatles",
-    year: "1969",
-    note: "Written by George Harrison after a long, difficult winter — a quiet reminder that things do get better.",
-  },
-  crossword: {
-    grid: [
-      ["F", "O", "X", "#", "#"],
-      ["A", "#", "#", "S", "#"],
-      ["R", "O", "A", "M", "#"],
-      ["#", "#", "#", "O", "#"],
-      ["#", "#", "#", "G", "#"],
-    ],
-    sampleClue: "3 Across: To wander without a fixed destination (4)",
-  },
+];
+
+const WORDS = [
+  { term: "petrichor", pronunciation: "/ˈpɛ.trɪ.kɔːr/", partOfSpeech: "n.", definition: "the pleasant, earthy smell that follows rain after a dry spell, caused by oils released from soil and plants." },
+  { term: "ephemeral", pronunciation: "/ɪˈfɛm.ər.əl/", partOfSpeech: "adj.", definition: "lasting for a very short time; fleeting." },
+  { term: "serendipity", pronunciation: "/ˌsɛr.ənˈdɪp.ɪ.ti/", partOfSpeech: "n.", definition: "the occurrence of finding something good or useful without looking for it." },
+  { term: "wanderlust", pronunciation: "/ˈwɒn.dər.lʌst/", partOfSpeech: "n.", definition: "a strong desire to travel and explore the world." },
+  { term: "mellifluous", pronunciation: "/məˈlɪf.lu.əs/", partOfSpeech: "adj.", definition: "a sound that is sweet and smooth, pleasing to hear." },
+];
+
+const QUOTES = [
+  { text: "Nothing in life is to be feared, it is only to be understood.", author: "Marie Curie" },
+  { text: "Knowing yourself is the beginning of all wisdom.", author: "Aristotle" },
+  { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+  { text: "You have power over your mind, not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius" },
+  { text: "The unexamined life is not worth living.", author: "Socrates" },
+];
+
+const YOGAS = [
+  { sanskrit: "Vrksasana", english: "Tree Pose", benefit: "Improves balance and focus while grounding the mind before the day begins." },
+  { sanskrit: "Adho Mukha Svanasana", english: "Downward-Facing Dog", benefit: "Stretches the shoulders, hamstrings, and calves while calming the nervous system." },
+  { sanskrit: "Balasana", english: "Child's Pose", benefit: "A gentle resting pose that relieves tension in the back, shoulders, and neck." },
+  { sanskrit: "Virabhadrasana II", english: "Warrior II", benefit: "Builds strength and stability in the legs while opening the hips and chest." },
+  { sanskrit: "Bhujangasana", english: "Cobra Pose", benefit: "Strengthens the spine and opens the chest, countering the effects of sitting." },
+];
+
+const EXERCISES = [
+  { name: "Bodyweight Squats", dosage: "3 sets × 15 reps", benefit: "Builds lower-body strength and mobility — no equipment needed." },
+  { name: "Push-Ups", dosage: "3 sets × 10 reps", benefit: "Strengthens the chest, shoulders, and triceps using just your bodyweight." },
+  { name: "Plank Hold", dosage: "3 rounds × 30 seconds", benefit: "Builds core stability and improves posture." },
+  { name: "Walking Lunges", dosage: "3 sets × 10 per leg", benefit: "Builds single-leg strength and balance." },
+  { name: "Jumping Jacks", dosage: "3 sets × 30 seconds", benefit: "A quick way to raise your heart rate and wake up the body." },
+];
+
+const SONGS = [
+  { title: "Here Comes the Sun", artist: "The Beatles", year: "1969", note: "Written by George Harrison after a long, difficult winter — a quiet reminder that things do get better." },
+  { title: "What a Wonderful World", artist: "Louis Armstrong", year: "1967", note: "A gentle, hopeful standard that's become one of the most covered songs in American music." },
+  { title: "Three Little Birds", artist: "Bob Marley & The Wailers", year: "1977", note: "A reggae classic built around a simple, comforting refrain: every little thing is gonna be alright." },
+  { title: "Good Vibrations", artist: "The Beach Boys", year: "1966", note: "Famous for its unusual, layered production — it took over six months and multiple studios to record." },
+  { title: "Walking on Sunshine", artist: "Katrina and the Waves", year: "1983", note: "An upbeat, horn-driven pop song that's remained a go-to feel-good anthem for decades." },
+];
+
+const WORDLE_WORDS = ["PLANT", "CRANE", "MANGO", "TRAIN", "GHOST"];
+
+const TODAY_DATA = {
+  catalogNo: String(dayOfYear(new Date())).padStart(3, "0"),
+  image: { ...pickForToday(IMAGES), plate: "Plate I" },
+  word: pickForToday(WORDS),
+  quote: pickForToday(QUOTES),
+  yoga: pickForToday(YOGAS),
+  exercise: pickForToday(EXERCISES),
+  song: pickForToday(SONGS),
+  wordle: { answer: pickForToday(WORDLE_WORDS) },
 };
 
 /* ============================================================
@@ -128,7 +177,7 @@ function SectionHeader({ title, plate, dateStr }) {
 /* ============================================================
    TODAY VIEW (dashboard)
    ============================================================ */
-function TodayView({ dateStr }) {
+function TodayView({ dateStr, onOpenPuzzle }) {
   const [imgUrl, setImgUrl] = useState(null);
   const [imgFailed, setImgFailed] = useState(false);
 
@@ -210,18 +259,16 @@ function TodayView({ dateStr }) {
         </div>
 
         <div className="card">
-          <div className="tag">SPECIMEN — PUZZLE</div>
-          <div style={styles.cardLabel}>Daily Crossword</div>
-          <div style={styles.crosswordGrid}>
-            {TODAY_DATA.crossword.grid.map((row, ri) =>
-              row.map((cell, ci) => (
-                <div key={`${ri}-${ci}`} className={`grid-cell ${cell === "#" ? "blocked" : ""}`} />
-              ))
-            )}
+          <div className="tag">SPECIMEN — WORD GUESS</div>
+          <div style={styles.cardLabel}>Daily Word Guess</div>
+          <div style={styles.wordleTeaserRow}>
+            {TODAY_DATA.wordle.answer.split("").map((_, i) => (
+              <div key={i} style={styles.wordleTeaserCell} />
+            ))}
           </div>
           <hr className="divider" />
-          <p style={styles.crosswordClue}>{TODAY_DATA.crossword.sampleClue}</p>
-          <a className="solve-link" href="#">Solve today's puzzle →</a>
+          <p style={styles.wordDef}>Guess the {TODAY_DATA.wordle.answer.length}-letter word in six tries.</p>
+          <button className="solve-link-btn" onClick={onOpenPuzzle}>Play today's word →</button>
         </div>
       </div>
       <div style={styles.footer}>Collected daily, one plate at a time.</div>
@@ -230,8 +277,210 @@ function TodayView({ dateStr }) {
 }
 
 /* ============================================================
-   TASKS VIEW (morning ledger)
+   PUZZLE VIEW (dedicated crossword screen)
    ============================================================ */
+const MAX_GUESSES = 6;
+const KEYBOARD_ROWS = [
+  ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+  ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+  ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "BACK"],
+];
+
+function scoreGuess(guess, answer) {
+  const result = Array(guess.length).fill("absent");
+  const answerLetters = answer.split("");
+  const used = Array(answer.length).fill(false);
+
+  // first pass: correct position
+  for (let i = 0; i < guess.length; i++) {
+    if (guess[i] === answerLetters[i]) {
+      result[i] = "correct";
+      used[i] = true;
+    }
+  }
+  // second pass: right letter, wrong position
+  for (let i = 0; i < guess.length; i++) {
+    if (result[i] === "correct") continue;
+    const idx = answerLetters.findIndex((l, j) => l === guess[i] && !used[j]);
+    if (idx !== -1) {
+      result[i] = "present";
+      used[idx] = true;
+    }
+  }
+  return result;
+}
+
+function WordleView({ dateStr, onBack }) {
+  const answer = TODAY_DATA.wordle.answer.toUpperCase();
+  const wordLength = answer.length;
+  const key = useRef(todayKey("wordle"));
+
+  const [guesses, setGuesses] = useState([]); // array of {letters, scores}
+  const [current, setCurrent] = useState("");
+  const [status, setStatus] = useState("playing"); // playing | won | lost
+  const [loaded, setLoaded] = useState(false);
+  const [shakeRow, setShakeRow] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const result = await window.storage.get(key.current, false);
+        if (result && result.value) {
+          const saved = JSON.parse(result.value);
+          setGuesses(saved.guesses || []);
+          setStatus(saved.status || "playing");
+        }
+      } catch {} finally { setLoaded(true); }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    window.storage.set(key.current, JSON.stringify({ guesses, status }), false).catch(() => {});
+  }, [guesses, status, loaded]);
+
+  function submitGuess() {
+    if (status !== "playing") return;
+    if (current.length !== wordLength) {
+      setMessage(`Word must be ${wordLength} letters.`);
+      setShakeRow(true);
+      setTimeout(() => setShakeRow(false), 400);
+      return;
+    }
+    setMessage("");
+    const scores = scoreGuess(current, answer);
+    const nextGuesses = [...guesses, { letters: current, scores }];
+    setGuesses(nextGuesses);
+    setCurrent("");
+
+    if (current === answer) {
+      setStatus("won");
+    } else if (nextGuesses.length >= MAX_GUESSES) {
+      setStatus("lost");
+    }
+  }
+
+  function pressKey(k) {
+    if (status !== "playing") return;
+    if (k === "ENTER") { submitGuess(); return; }
+    if (k === "BACK") { setCurrent((prev) => prev.slice(0, -1)); return; }
+    if (current.length < wordLength) setCurrent((prev) => prev + k);
+  }
+
+  useEffect(() => {
+    function handleKey(e) {
+      if (status !== "playing") return;
+      if (e.key === "Enter") submitGuess();
+      else if (e.key === "Backspace") setCurrent((prev) => prev.slice(0, -1));
+      else if (/^[a-zA-Z]$/.test(e.key)) pressKey(e.key.toUpperCase());
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, status, guesses]);
+
+  // letter statuses for the on-screen keyboard
+  const keyStatus = {};
+  guesses.forEach((g) => {
+    g.letters.split("").forEach((l, i) => {
+      const s = g.scores[i];
+      const rank = { absent: 0, present: 1, correct: 2 };
+      if (!(l in keyStatus) || rank[s] > rank[keyStatus[l]]) keyStatus[l] = s;
+    });
+  });
+
+  const rowsToRender = Array.from({ length: MAX_GUESSES });
+
+  return (
+    <div>
+      <div style={styles.header}>
+        <div>
+          <button className="text-link" onClick={onBack} style={{ marginBottom: 8, display: "inline-block" }}>← back to today</button>
+          <div style={styles.kicker}>MAKTUB</div>
+          <h1 style={styles.masthead}>Today's Word</h1>
+        </div>
+        <div style={styles.headerRight}>
+          <div style={styles.specimenTag}>Word Guess</div>
+          <div style={styles.dateStr}>{dateStr}</div>
+        </div>
+      </div>
+      <hr style={styles.headerRule} />
+
+      <div style={styles.card} className="card">
+        <div style={styles.wordleBoard}>
+          {rowsToRender.map((_, rowIdx) => {
+            const submitted = guesses[rowIdx];
+            const isCurrentRow = rowIdx === guesses.length && status === "playing";
+            const letters = submitted
+              ? submitted.letters.split("")
+              : isCurrentRow
+              ? current.padEnd(wordLength, " ").split("")
+              : Array(wordLength).fill(" ");
+
+            return (
+              <div
+                key={rowIdx}
+                style={{
+                  ...styles.wordleRow,
+                  ...(isCurrentRow && shakeRow ? { animation: "shake 0.4s" } : {}),
+                }}
+              >
+                {letters.map((l, i) => {
+                  const s = submitted ? submitted.scores[i] : null;
+                  const bg = s === "correct" ? "#3F5443" : s === "present" ? "#B98A3D" : s === "absent" ? "#8C8360" : "#FBF7EC";
+                  const color = s ? "#F1ECDC" : "#2B2A25";
+                  const border = s ? "1px solid transparent" : "2px solid #C9BFA0";
+                  return (
+                    <div key={i} style={{ ...styles.wordleCell, background: bg, color, border }}>
+                      {l.trim()}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+
+        {message && <div style={styles.puzzleResult}>{message}</div>}
+        {status === "won" && (
+          <div style={styles.puzzleResult}>Solved it in {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}. Nicely done.</div>
+        )}
+        {status === "lost" && (
+          <div style={styles.puzzleResult}>Out of guesses — today's word was {answer}.</div>
+        )}
+
+        <div style={styles.keyboardWrap}>
+          {KEYBOARD_ROWS.map((row, ri) => (
+            <div key={ri} style={styles.keyboardRow}>
+              {row.map((k) => {
+                const s = keyStatus[k];
+                const bg = s === "correct" ? "#3F5443" : s === "present" ? "#B98A3D" : s === "absent" ? "#8C8360" : "#FBF7EC";
+                const color = s ? "#F1ECDC" : "#2B2A25";
+                const wide = k === "ENTER" || k === "BACK";
+                return (
+                  <button
+                    key={k}
+                    onClick={() => pressKey(k)}
+                    style={{
+                      ...styles.keyBtn,
+                      background: bg,
+                      color,
+                      flex: wide ? 1.6 : 1,
+                    }}
+                  >
+                    {k === "BACK" ? "⌫" : k}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TasksView({ dateStr }) {
   const [tasks, setTasks] = useState([]);
   const [draft, setDraft] = useState("");
@@ -637,6 +886,7 @@ const TABS = [
 
 export default function App() {
   const [active, setActive] = useState("today");
+  const [puzzleOpen, setPuzzleOpen] = useState(false);
   const [dateStr, setDateStr] = useState("");
 
   useEffect(() => { setDateStr(fmtDate(new Date())); }, []);
@@ -651,8 +901,7 @@ export default function App() {
         .tag { position: absolute; top: -11px; left: 16px; background: #3F5443; color: #F1ECDC; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.06em; padding: 3px 8px; }
         .divider { border: none; border-top: 1px dashed #B7AC8A; margin: 14px 0; }
         a.solve-link { color: #A14A2F; text-decoration: none; border-bottom: 1px solid #A14A2F; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; }
-        .grid-cell { width: 22px; height: 22px; border: 1px solid #8C8360; }
-        .grid-cell.blocked { background: #2B2A25; }
+        .solve-link-btn { color: #A14A2F; text-decoration: none; border: none; border-bottom: 1px solid #A14A2F; background: none; padding: 0; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; }
         @media (max-width: 640px) { .two-col { grid-template-columns: 1fr !important; } }
         .field-input { font-family: 'Source Serif 4', serif; font-size: 14px; border: none; border-bottom: 1px solid #B7AC8A; background: transparent; padding: 7px 2px; outline: none; color: #2B2A25; }
         .field-input:focus { border-bottom-color: #3F5443; }
@@ -681,23 +930,37 @@ export default function App() {
         .nav-btn.active { color: #F1ECDC; }
         .nav-icon { font-size: 17px; }
         .nav-label { font-size: 10px; letter-spacing: 0.05em; }
+        @keyframes shake {
+          10%, 90% { transform: translateX(-2px); }
+          20%, 80% { transform: translateX(4px); }
+          30%, 50%, 70% { transform: translateX(-8px); }
+          40%, 60% { transform: translateX(8px); }
+        }
       `}</style>
 
       <div style={styles.scrollArea}>
-        {active === "today" && <TodayView dateStr={dateStr} />}
-        {active === "tasks" && <TasksView dateStr={dateStr} />}
-        {active === "journal" && <JournalView dateStr={dateStr} />}
-        {active === "books" && <BooksView dateStr={dateStr} />}
+        {puzzleOpen ? (
+          <WordleView dateStr={dateStr} onBack={() => setPuzzleOpen(false)} />
+        ) : (
+          <>
+            {active === "today" && <TodayView dateStr={dateStr} onOpenPuzzle={() => setPuzzleOpen(true)} />}
+            {active === "tasks" && <TasksView dateStr={dateStr} />}
+            {active === "journal" && <JournalView dateStr={dateStr} />}
+            {active === "books" && <BooksView dateStr={dateStr} />}
+          </>
+        )}
       </div>
 
-      <nav className="bottom-nav">
-        {TABS.map((t) => (
-          <button key={t.id} className={`nav-btn ${active === t.id ? "active" : ""}`} onClick={() => setActive(t.id)}>
-            <span className="nav-icon">{t.icon}</span>
-            <span className="nav-label">{t.label.toUpperCase()}</span>
-          </button>
-        ))}
-      </nav>
+      {!puzzleOpen && (
+        <nav className="bottom-nav">
+          {TABS.map((t) => (
+            <button key={t.id} className={`nav-btn ${active === t.id ? "active" : ""}`} onClick={() => setActive(t.id)}>
+              <span className="nav-icon">{t.icon}</span>
+              <span className="nav-label">{t.label.toUpperCase()}</span>
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }
@@ -739,8 +1002,8 @@ const styles = {
   wordMeta: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#5B5642", marginTop: 2 },
   wordDef: { fontSize: 14.5, lineHeight: 1.55, margin: 0, color: "#3A382F" },
   quoteText: { fontFamily: "'Fraunces', serif", fontSize: 17, fontStyle: "italic", lineHeight: 1.5, margin: "6px 0 8px" },
-  crosswordGrid: { display: "grid", gridTemplateColumns: "repeat(5, 22px)", gap: 2, marginTop: 6 },
-  crosswordClue: { fontSize: 13, lineHeight: 1.5, margin: "0 0 10px", color: "#3A382F" },
+  wordleTeaserRow: { display: "flex", gap: 4, marginTop: 6 },
+  wordleTeaserCell: { width: 22, height: 22, border: "1.5px solid #8C8360", background: "#FBF7EC" },
   footer: { textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#8C8360", marginTop: 34, letterSpacing: "0.04em" },
   card: { background: "#FBF7EC", border: "1px solid #C9BFA0", padding: "20px 18px" },
   progressRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 10 },
@@ -762,4 +1025,20 @@ const styles = {
   yearLabel: { fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 600, color: "#3F5443", marginBottom: 6 },
   monthLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, letterSpacing: "0.05em", color: "#A14A2F", marginBottom: 4 },
   historyRow: { fontSize: 14.5, padding: "4px 0 4px 12px" },
+  wordleBoard: { display: "flex", flexDirection: "column", gap: 6, alignItems: "center" },
+  wordleRow: { display: "flex", gap: 6 },
+  wordleCell: {
+    width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center",
+    fontFamily: "'IBM Plex Mono', monospace", fontSize: 20, fontWeight: 600,
+    textTransform: "uppercase",
+  },
+  puzzleResult: {
+    marginTop: 14, textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, color: "#3F5443",
+  },
+  keyboardWrap: { marginTop: 20, display: "flex", flexDirection: "column", gap: 6 },
+  keyboardRow: { display: "flex", gap: 5, justifyContent: "center" },
+  keyBtn: {
+    flex: 1, minWidth: 0, height: 44, border: "none", cursor: "pointer",
+    fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, fontWeight: 600,
+  },
 };
