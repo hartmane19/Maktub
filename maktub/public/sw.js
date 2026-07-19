@@ -1,4 +1,4 @@
-const CACHE_NAME = "maktub-cache-v1";
+const CACHE_NAME = "maktub-cache-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -15,23 +15,22 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Stale-while-revalidate: serve from cache instantly if available,
-// and quietly refresh the cache in the background from the network.
+// Network-first: always try to get the freshest version from the network.
+// Only fall back to the cached copy if there's no internet connection.
+// This means updates you deploy always show up right away, and the app
+// still works offline as a fallback, not as the default.
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      const cached = await cache.match(event.request);
-      const networkFetch = fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            cache.put(event.request, response.clone());
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || networkFetch;
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
