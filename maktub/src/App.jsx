@@ -11,8 +11,7 @@ const TODAY_DATA = {
     plate: "Plate I",
     history:
       "Katsushika Hokusai carved this image in his seventies, part of a series called Thirty-six Views of Mount Fuji. The wave's claws of foam were achieved using a rare pigment called Prussian blue, newly imported from Europe.",
-    imgUrl:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Tsunami_by_hokusai_19th_century.jpg/640px-Tsunami_by_hokusai_19th_century.jpg",
+    commonsFile: "The Great Wave off Kanagawa.jpg",
   },
   word: {
     term: "petrichor",
@@ -73,6 +72,38 @@ function monthYear(dateISO) {
   return { month: d.toLocaleDateString("en-US", { month: "long" }), year: d.getFullYear() };
 }
 
+async function resolveCommonsImageUrl(fileTitle, widthPx = 800) {
+  try {
+    const endpoint =
+      "https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=url" +
+      `&iiurlwidth=${widthPx}&format=json&origin=*&titles=` +
+      encodeURIComponent(`File:${fileTitle}`);
+    const res = await fetch(endpoint);
+    if (!res.ok) {
+      console.error("Commons API request failed", res.status, res.statusText);
+      return null;
+    }
+    const data = await res.json();
+    const pages = data?.query?.pages;
+    if (!pages) {
+      console.error("Commons API returned no pages", data);
+      return null;
+    }
+    const page = Object.values(pages)[0];
+    if (page?.missing !== undefined) {
+      console.error("Commons file not found:", fileTitle);
+      return null;
+    }
+    const info = page?.imageinfo?.[0];
+    const url = info ? info.thumburl || info.url : null;
+    if (!url) console.error("Commons page had no imageinfo", page);
+    return url;
+  } catch (e) {
+    console.error("Could not resolve Commons image", e);
+    return null;
+  }
+}
+
 /* ============================================================
    SHARED HEADER
    ============================================================ */
@@ -98,13 +129,34 @@ function SectionHeader({ title, plate, dateStr }) {
    TODAY VIEW (dashboard)
    ============================================================ */
 function TodayView({ dateStr }) {
+  const [imgUrl, setImgUrl] = useState(null);
+  const [imgFailed, setImgFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    resolveCommonsImageUrl(TODAY_DATA.image.commonsFile).then((url) => {
+      if (cancelled) return;
+      if (url) setImgUrl(url);
+      else setImgFailed(true);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div>
       <SectionHeader title="Daily Rituals" plate={`No. ${TODAY_DATA.catalogNo}`} dateStr={dateStr} />
 
       <div style={styles.platewrap} className="card">
         <div className="tag">{TODAY_DATA.image.plate}</div>
-        <img src={TODAY_DATA.image.imgUrl} alt={TODAY_DATA.image.title} style={styles.plateImg} />
+        {imgUrl && (
+          <img src={imgUrl} alt={TODAY_DATA.image.title} style={styles.plateImg} />
+        )}
+        {!imgUrl && !imgFailed && (
+          <div style={styles.imgPlaceholder}>Loading today's image...</div>
+        )}
+        {imgFailed && (
+          <div style={styles.imgPlaceholder}>Image unavailable today.</div>
+        )}
         <div style={{ paddingTop: 16 }}>
           <h2 style={styles.plateTitle}>{TODAY_DATA.image.title}</h2>
           <div style={styles.plateOrigin}>{TODAY_DATA.image.origin}</div>
@@ -665,6 +717,19 @@ const styles = {
   headerRule: { border: "none", borderTop: "2px solid #2B2A25", margin: "14px 0 22px" },
   platewrap: { marginBottom: 22 },
   plateImg: { width: "100%", display: "block", filter: "sepia(8%)", border: "1px solid #C9BFA0" },
+  imgPlaceholder: {
+    width: "100%",
+    minHeight: 220,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#E3DBC2",
+    border: "1px solid #C9BFA0",
+    fontFamily: "'IBM Plex Mono', monospace",
+    fontSize: 12.5,
+    color: "#8C8360",
+    fontStyle: "italic",
+  },
   plateTitle: { fontFamily: "'Fraunces', serif", fontSize: 24, fontWeight: 600, margin: "0 0 4px" },
   plateOrigin: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: "#5B5642", letterSpacing: "0.03em" },
   plateHistory: { fontSize: 15, lineHeight: 1.6, margin: 0, color: "#3A382F" },
